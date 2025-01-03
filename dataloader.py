@@ -6,30 +6,11 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 import torch
-from torch.utils.data import DataLoader, Dataset
-import random
-import numpy as np
-# from datasets import create_dataset
+from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
-
-
-class CustomDataset(Dataset):
-    """
-    Custom Dataset Wrapper
-    """
-    def __init__(self, dataset, preprocess):
-        self.dataset = dataset
-        self.preprocess = preprocess
-
-    def __getitem__(self, index):
-        sample = self.dataset.get(index)
-        input_tensor = self.preprocess(sample['input'])
-        target = sample['target']
-        return input_tensor, target
-
-    def __len__(self):
-        return len(self.dataset)
+import random
+import numpy as np
 
 
 class DataLoaderWrapper:
@@ -45,7 +26,7 @@ class DataLoaderWrapper:
         np.random.seed(self.manual_seed)
 
         # Initialize Dataset and DataLoader
-        self.dataset = CustomDataset(dataset, dataset.preprocess())
+        self.dataset = dataset
         self.dataloader = DataLoader(
             self.dataset,
             batch_size=self.batch_size,
@@ -80,7 +61,15 @@ def create(opt):
     Create train and validation data loaders.
     """
     loaders = {}
+    
+    # Define the transformations for the dataset
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+    
     for split in ['train', 'val']:
-        dataset = create_dataset(opt, split)
+        dataset = CIFAR10(root='./data', train=(split == 'train'), download=True, transform=transform)
         loaders[split] = DataLoaderWrapper(dataset, opt, split)
+    
     return loaders['train'], loaders['val']
